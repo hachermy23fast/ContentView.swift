@@ -1,0 +1,110 @@
+import SwiftUI
+import WebKit
+
+@main
+struct CryptoTerminalApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+struct ContentView: View {
+    @State private var currentURL: String = "https://ru.tradingview.com/chart/"
+    @State private var customURL: String = ""
+    @State private var showAddressBar: Bool = false
+    
+    let sites: [(name: String, url: String, icon: String)] = [
+        ("TradingView", "https://ru.tradingview.com/chart/", "chart.line.uptrend.xyaxis"),
+        ("Binance", "https://www.binance.com/ru/trade/BTC_USDT", "bitcoinsign.circle.fill"),
+        ("Bybit", "https://www.bybit.com/trade/usdt/BTCUSDT", "bolt.fill"),
+        ("CMC", "https://coinmarketcap.com/", "chart.pie.fill"),
+        ("DeFiLlama", "https://defillama.com/", "dollarsign.circle")
+    ]
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color(red: 0.04, green: 0.05, blue: 0.08)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Верхний бар под Dynamic Island iPhone 15 Pro
+                HStack {
+                    Text("Crypto Terminal Pro")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Button(action: { showAddressBar.toggle() }) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 18))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(Color(red: 0.07, green: 0.09, blue: 0.15))
+                
+                if showAddressBar {
+                    HStack {
+                        TextField("https://...", text: $customURL)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.none)
+                        Button("Перейти") {
+                            if !customURL.isEmpty {
+                                currentURL = customURL.starts(with: "http") ? customURL : "https://" + customURL
+                                showAddressBar = false
+                            }
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                    }
+                    .padding(8)
+                    .background(Color(red: 0.1, green: 0.12, blue: 0.18))
+                }
+                
+                // WebKit Браузер (120Hz ProMotion)
+                WebView(urlString: currentURL)
+            }
+            
+            // Нижняя панель под Home Bar iPhone 15 Pro
+            HStack(spacing: 0) {
+                ForEach(sites, id: \.url) { item in
+                    Button(action: { currentURL = item.url }) {
+                        VStack(spacing: 3) {
+                            Image(systemName: item.icon)
+                                .font(.system(size: 18))
+                            Text(item.name)
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(currentURL == item.url ? .blue : .gray)
+                    }
+                }
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 24)
+            .background(Color(red: 0.07, green: 0.09, blue: 0.15).opacity(0.96))
+        }
+    }
+}
+
+struct WebView: UIViewRepresentable {
+    let urlString: String
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.isOpaque = false
+        webView.backgroundColor = UIColor(red: 0.04, green: 0.05, blue: 0.08, alpha: 1.0)
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        if let url = URL(string: urlString) {
+            uiView.load(URLRequest(url: url))
+        }
+    }
+}

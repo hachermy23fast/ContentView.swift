@@ -1,0 +1,45 @@
+name: Build CryptoTerminal IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Compile iOS App (ARM64 for iPhone 15 Pro)
+        run: |
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "Using SDK at $SDK_PATH"
+          
+          mkdir -p Payload/CryptoTerminal.app
+          
+          # Компиляция в бинарный файл Mach-O ARM64
+          xcrun --sdk iphoneos swiftc \
+            -target arm64-apple-ios17.0 \
+            -sdk "$SDK_PATH" \
+            -framework UIKit \
+            -framework SwiftUI \
+            -framework WebKit \
+            -O \
+            -o Payload/CryptoTerminal.app/CryptoTerminal \
+            main.swift
+          
+          # Копирование манифеста и служебных файлов
+          cp Info.plist Payload/CryptoTerminal.app/Info.plist
+          echo -n "APPL????" > Payload/CryptoTerminal.app/PkgInfo
+
+      - name: Package IPA Archive
+        run: |
+          zip -r9 CryptoTerminalPro_iPhone15Pro.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CryptoTerminalPro_iPhone15Pro
+          path: CryptoTerminalPro_iPhone15Pro.ipa
